@@ -83,7 +83,7 @@ game:
         refreshes has_picked counters
         checks new startplayer
         refreshes character_deck 
-        
+        set all player.characters = "UNASSIGNED"
 
 
 
