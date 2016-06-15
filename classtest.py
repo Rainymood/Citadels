@@ -1,4 +1,5 @@
 import random
+import time 
 import logging
 
 # set up logger 
@@ -17,18 +18,45 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.info("Starting program")
 
+CHARACTER_RANKS = {
+        'assassin':  1,
+        'thief':     2,
+        'magician':  3,
+        'king':      4,
+        'bishop':    5,
+        'merchant':  6,
+        'architect': 7,
+        'warlord':   8
+}
+
+CHARACTER_DECK = ['assassin', 'thief', 'architect', 'bishop', 'king', 'magician', 'merchant', 'warlord']
+
+
 class Player(object):
     def __init__(self, name, seat_number):
         self.name = name 
-        self.seat_number = seat_number
+        self.seat_number = seat_number # used for queen character
         self.coins = 2 # everyone starts with 2 coins 
-        self.points = 0
-        self.is_turn = 0
-        self.cards_in_hand = 0
-        self.has_king_figure = 0
+        self.is_turn = 0 # perhaps depreciated? 
+        self.is_murdered = 0
+        self.is_being_stolen_from = 0 
         self.character = "UNASSIGNED"
-        self.has_picked = 0 
+        self.has_picked = 0 # character
+        self.has_taken = 0 # has taken either gold or +2 cards and then -1
+        self.has_used_power = 0
+        self.has_king_figure = 0
         self.rank = 0 
+        # buildings 
+        self.has_built = 0
+        self.amount_built = 0 
+        self.yellow_buildings = 0 
+        self.green_buildings = 0
+        self.blue_buildings = 0
+        self.red_buildigs = 0
+        self.purple_buildings = 0
+        # cards 
+        self.cards_in_hand = [] 
+        self.amount_cards_in_hand = len(self.cards_in_hand) # show back web
 
     def pick_character(self, character):
         """Lets a player pick a character from the deck and removes that element
@@ -39,13 +67,109 @@ class Player(object):
         side effects: mutates deck and player.character 
         """
         global character_deck
+        global CHARACTER_RANKS
         if character in character_deck:
             self.character = character
+            self.rank = CHARACTER_RANKS[character]
             self.has_picked = 1
             character_deck.remove(character)
         else:
             raise ValueError("Picked character not in deck")
             logger.warning("Picked character not in deck")
+    
+    def use_power(self):
+        print "{0} is invoking the {1}'s power!".format(self.name, self.character)
+        self.has_used_power = 1 
+        ### ASSASSIN ###
+        if self.character == 'assassin':
+            # desc
+            print "The Assassin's power reads as follows:"
+            print "(Active) Announce a character you wish to murder. The murdered character misses his entire turn."
+            # user 
+            target = raw_input("Announce a character you wish to murder: ")
+            targets = ['thief', 'magician', 'king', 'bishop', 
+                    'merchant', 'architect', 'warlord']
+            while target not in targets:
+                print "Invalid target."
+                target = raw_input("Announce a character you wish to murder: ")
+            print "O lord! The {0} has been murdered!".format(target)
+            for player in players:
+                if player.character == target:
+                    player.is_murdered = 1
+        ### THIEF ### 
+        elif self.character == 'thief':
+            # desc
+            print "The Thief's power reads as follows: " 
+            print "Announce a character from whom you wish to steal. When that character is revealed, take his gold."
+            # user 
+            target = raw_input("Announce a character you steal to from: ")
+            targets = ['assassin', 'magician', 'king', 'bishop', 'merchant', 'architect', 'warlord']
+            while target not in targets:
+                print "Invalid target."
+                target = raw_input("Announce a character you wish to steal from: ")
+            print "The thief has subtly marked the {0}'s gold!".format(target)
+            for player in players:
+                if player.character == target:
+                    player.is_being_stolen_from = 1
+            
+        ### MAGICIAN ### 
+        elif self.character == 'magician':
+            pass
+        ### KING ###
+        elif self.character == 'king':
+            pass
+        ### BISHOP ### 
+        elif self.character == 'bishop':
+            # print bishop.description()
+            print "The Bishop's power reads as follows:"
+            print "(Active) You receive 1 gold for each religious (blue) district in your city."
+            print "(Passive) Your districts can not be destroyed by the Diplomat or Warlord."
+            # user 
+            print "{0} has {1} blue buildings and thus receives {2} gold.".format(self.name, self.blue_buildings, self.blue_buildings)
+            print "{0} now has {1} gold.".format(self.name, self.coins)
+        ### MERCHANT ### 
+        elif self.character == 'merchant':
+            # desc
+            print "The Merchant's power reads as follows: "
+            print "(Active) You receive 1 gold for each trade (green) district in your city."
+            print "(Passive) After you take an action, you receive one additional gold."
+            # user 
+            print "{0} has {1} green buildings and thus receives {2} gold.".format(self.name, self.green_buildings, self.green_buildings)
+            print "{0} now has {1} gold.".format(self.name, self.coins)
+        ### ARCHITECT ### 
+        elif self.character == 'architect':
+            print "The Architect's power reads as follows: "
+            print "(Passive) After you take an action, draw two extra cards and put both in your hand."
+            print "(Passive) You may build up to three districts turing your turn"
+            print "Nothing happens."
+        ### WARLORD ### 
+        elif self.character == 'warlord':
+            # check if building destroyed is owned by bishop 
+            pass
+
+    def build(self):
+        print "player builds building"
+        pass 
+        # check duplicates (can not build more than 2)
+
+    def take_action(self, arg):
+    # take_action(gold) or take_action(draw)
+        player.has_taken = 1
+        if arg == "gold":
+            self.coins += 2
+            print "{0} received 2 gold. {0} now has {1} gold.".format(self.name, self.coins)
+        elif arg == "draw":
+            print "drew cards"
+        elif arg == "power":
+            self.use_power()
+        else:
+            pass
+
+
+
+
+
+### GENERATE PLAYER OBJECTS ### 
 
 NUMBER_OF_PLAYERS = 4 # raw input later 
 PLAYER_NAMES = ['Jan', 'Jelle', 'Lasse', 'Woody'] # change to raw input later 
@@ -57,6 +181,11 @@ for i in xrange(NUMBER_OF_PLAYERS):
     # seatnumber is a number between 1 and NUMBER_PLAYERS 
     playerobject = Player(PLAYER_NAMES[i], i+1)
     players.append(playerobject)
+
+player1 = players[0]
+player2 = players[1]
+player3 = players[2]
+player4 = players[3]
 
 def nextplayer(player_number): 
     global NUMBER_OF_PLAYERS 
@@ -108,22 +237,71 @@ print """
 ================================================================================
 """
 
+print  "====== PHASE 0: REFRESH TURN ===== \n"
+
+# give king figure to oldest player if no one has king
+# set has_picked = 0 for all players 
+
 print "====== PHASE 1: REMOVE CHARACTERS ===== \n"
+
 character_deck = ['assassin', 'thief', 'architect', 'bishop', 'king', 'magician', 'merchant', 'warlord']
 print "Original character deck:", ", ".join(character_deck)
 remove_characters()
 print "Characters to pick from:", ", ".join(character_deck)
 
 print "\n===== PHASE 2: PICK CHARACTERS ===== \n"
+
 for player in players:
     print"Characters available to choose from: ",", ".join(character_deck)
-    pickedclass = raw_input("Pick a character: ")
+    #pickedclass = raw_input("Pick a character: ")
+    # TODO remove after testing
+    pickedclass = random.choice(character_deck)
     while True:
         if pickedclass in character_deck:
             print "player {0} picked {1}".format(player.seat_number, pickedclass)
             player.pick_character(pickedclass)
+            print "player ranked {0}".format(player.rank)
             break
         else:
             print "Character not in deck. Try again. "
             pickedclass = raw_input("Pick a character: ")
 
+print "\n==== PHASE 3: PLAYER TURNS ==== \n"
+
+for rank in range(1,9):
+    for player in players:
+        if player.rank == rank:
+            print "=== PLAYER: {0} - PLAYING AS: {1} ===\n".format(player.name, player.character)
+
+            turn_end = False
+            while not turn_end:
+                actions = {}
+                if player.has_used_power == 0:
+                    actions['power'] = 'to use character power.'
+                if turn_end == False:
+                    actions['end'] = 'to end turn.'
+                if player.has_taken == 0:
+                    actions['coins'] = 'to receive 2 coins.'
+                    actions['draw'] = 'to draw 2 cards and discard 1.'
+                if player.has_built == 0:
+                    actions['build'] = 'to build .'
+                if player.has_taken == 0 and player.has_built == 0:
+                    actions.pop('build', None)
+
+                for action in actions:
+                   print "--",action, "-- ", actions[action]
+
+                action = raw_input("Type your action: ")
+                while action not in actions.keys():
+                    action = raw_input("Type your action: ")
+
+                if action == "power":
+                    player.use_power()
+                elif action == "coins":
+                    player.take_action("gold")
+                elif action == "draw":
+                    player.take_action("draw")
+                elif action == "build":
+                    player.build()
+                elif action == "end":
+                    turn_end = True
