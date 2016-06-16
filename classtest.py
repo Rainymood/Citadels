@@ -129,6 +129,7 @@ class Player(object):
             print "(Passive) Your districts can not be destroyed by the Diplomat or Warlord."
             # user 
             print "{0} has {1} blue buildings and thus receives {2} gold.".format(self.name, self.blue_buildings, self.blue_buildings)
+            self.coins += self.blue_buildings
             print "{0} now has {1} gold.".format(self.name, self.coins)
         ### MERCHANT ### 
         elif self.character == 'merchant':
@@ -138,6 +139,7 @@ class Player(object):
             print "(Passive) After you take an action, you receive one additional gold."
             # user 
             print "{0} has {1} green buildings and thus receives {2} gold.".format(self.name, self.green_buildings, self.green_buildings)
+            self.coins += self.green_buildings
             print "{0} now has {1} gold.".format(self.name, self.coins)
         ### ARCHITECT ### 
         elif self.character == 'architect':
