@@ -1,6 +1,7 @@
 import random
 import time 
 import logging
+import cards # import card objects 
 
 # set up logger 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,6 @@ CHARACTER_RANKS = {
 }
 
 CHARACTER_DECK = ['assassin', 'thief', 'architect', 'bishop', 'king', 'magician', 'merchant', 'warlord']
-
 
 class Player(object):
     def __init__(self, name, seat_number):
@@ -86,9 +86,11 @@ class Player(object):
             print "The Assassin's power reads as follows:"
             print "(Active) Announce a character you wish to murder. The murdered character misses his entire turn."
             # user 
-            target = raw_input("Announce a character you wish to murder: ")
             targets = ['thief', 'magician', 'king', 'bishop', 
                     'merchant', 'architect', 'warlord']
+
+            print "List of possible targets: "+', '.join(targets)
+            target = raw_input("Announce a character you wish to murder: ")
             while target not in targets:
                 print "Invalid target."
                 target = raw_input("Announce a character you wish to murder: ")
@@ -102,12 +104,13 @@ class Player(object):
             print "The Thief's power reads as follows: " 
             print "Announce a character from whom you wish to steal. When that character is revealed, take his gold."
             # user 
-            target = raw_input("Announce a character you steal to from: ")
             targets = ['assassin', 'magician', 'king', 'bishop', 'merchant', 'architect', 'warlord']
+            print "List of possible targets: "+', '.join(targets)
+            target = raw_input("Announce a character you steal to from: ")
             while target not in targets:
                 print "Invalid target."
                 target = raw_input("Announce a character you wish to steal from: ")
-            print "The thief has subtly marked the {0}'s gold!".format(target)
+            print "The thief has stolen the {0}'s gold!".format(target)
             for player in players:
                 if player.character == target:
                     player.is_being_stolen_from = 1
@@ -157,17 +160,28 @@ class Player(object):
         player.has_taken = 1
         if arg == "gold":
             self.coins += 2
-            print "{0} received 2 gold. {0} now has {1} gold.".format(self.name, self.coins)
+            print "{0} received 2 gold. {0} now has {1} gold.\n".format(self.name, self.coins)
         elif arg == "draw":
-            print "drew cards"
+            print "{0} drew 2 cards and will discard one.".format(self.name)
         elif arg == "power":
             self.use_power()
         else:
             pass
 
-
-
-
+    def show(self):
+        print "Your name is {}".format(self.name)
+        print "(HIDDEN) You are playing as the {}".format(self.character)
+        print "You currently have {} coins".format(self.coins)
+        print "And you have {} cards in your hand".format(self.amount_cards_in_hand)
+        if self.has_used_power == 1:
+            print "You have used your power already."
+        else:
+            print "You have not used your power yet."
+        if self.has_king_figure == 1:
+            print "You are in posession of the king figure."
+        else:
+            print "You are not in posession of the king figure."
+        print ""
 
 ### GENERATE PLAYER OBJECTS ### 
 
@@ -177,11 +191,10 @@ PLAYER_NAMES = ['Jan', 'Jelle', 'Lasse', 'Woody'] # change to raw input later
 # Generate player objects and put them in a list 
 players = []
 for i in xrange(NUMBER_OF_PLAYERS):
-    # player[0] == player1 !! 
-    # seatnumber is a number between 1 and NUMBER_PLAYERS 
     playerobject = Player(PLAYER_NAMES[i], i+1)
     players.append(playerobject)
 
+# Convenient when debugging (player1.character = .. etc)
 player1 = players[0]
 player2 = players[1]
 player3 = players[2]
@@ -242,12 +255,19 @@ print  "====== PHASE 0: REFRESH TURN ===== \n"
 # give king figure to oldest player if no one has king
 # set has_picked = 0 for all players 
 
+time.sleep(1)
+
 print "====== PHASE 1: REMOVE CHARACTERS ===== \n"
+
+time.sleep(1)
 
 character_deck = ['assassin', 'thief', 'architect', 'bishop', 'king', 'magician', 'merchant', 'warlord']
 print "Original character deck:", ", ".join(character_deck)
 remove_characters()
 print "Characters to pick from:", ", ".join(character_deck)
+
+time.sleep(1)
+
 
 print "\n===== PHASE 2: PICK CHARACTERS ===== \n"
 
@@ -258,24 +278,25 @@ for player in players:
     pickedclass = random.choice(character_deck)
     while True:
         if pickedclass in character_deck:
-            print "player {0} picked {1}".format(player.seat_number, pickedclass)
+            print "(HIDDEN) player {0} picked {1}".format(player.seat_number, pickedclass)
             player.pick_character(pickedclass)
-            print "player ranked {0}".format(player.rank)
+            #print "player ranked {0}".format(player.rank)
             break
         else:
             print "Character not in deck. Try again. "
             pickedclass = raw_input("Pick a character: ")
 
+time.sleep(1)
 print "\n==== PHASE 3: PLAYER TURNS ==== \n"
 
 for rank in range(1,9):
     for player in players:
         if player.rank == rank:
-            print "=== PLAYER: {0} - PLAYING AS: {1} ===\n".format(player.name, player.character)
+            print "=== PLAYER: {0} ({1}) ===\n".format(player.name, player.character)
 
             turn_end = False
             while not turn_end:
-                actions = {}
+                actions = {'show': 'show information'}
                 if player.has_used_power == 0:
                     actions['power'] = 'to use character power.'
                 if turn_end == False:
@@ -290,10 +311,14 @@ for rank in range(1,9):
 
                 for action in actions:
                    print "--",action, "-- ", actions[action]
+                print ""
 
                 action = raw_input("Type your action: ")
+                print "" 
                 while action not in actions.keys():
+                    print "Invalid action.\n"
                     action = raw_input("Type your action: ")
+                    print ""
 
                 if action == "power":
                     player.use_power()
@@ -305,3 +330,5 @@ for rank in range(1,9):
                     player.build()
                 elif action == "end":
                     turn_end = True
+                elif action == "show":
+                    player.show()
