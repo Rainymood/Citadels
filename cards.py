@@ -5,10 +5,12 @@ class Card(object):
         self.description = description
         self.cost = cost
         self.points = points
+        self.color = color
 
 # migrate to different file and import cards
 tavern = Card(name = "tavern",
-              description = "",
+              description = "A tavern.",
               cost = 1,
-              points = 1
+              points = 1,
+              color = "green"
               )
