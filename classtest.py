@@ -1,7 +1,15 @@
+# -*- coding: utf-8 -*-
 import random
 import time 
+import os
+import platform
 import logging
-import cards # import card objects 
+import textwrap
+#from __future__ import print_functions
+from pprint import pprint
+from cards import CARDS # import card objects 
+from cards import deck
+os.system("mode con: cols=80 lines=80")
 
 # set up logger 
 logger = logging.getLogger(__name__)
@@ -46,8 +54,10 @@ class Player(object):
         self.has_used_power = 0
         self.has_king_figure = 0
         self.rank = 0 
+        self.character_visible = 0
         # buildings 
-        self.has_built = 0
+        self.buildings_built = []
+        self.has_built = 0 # has built during his turn  yes/no
         self.amount_built = 0 
         self.yellow_buildings = 0 
         self.green_buildings = 0
@@ -164,11 +174,61 @@ class Player(object):
             self.coins += 2
             print "{0} received 2 gold. {0} now has {1} gold.\n".format(self.name, self.coins)
         elif arg == "draw":
-            print "{0} drew 2 cards and will discard one.".format(self.name)
+            self.draw(2, discard=1)
         elif arg == "power":
             self.use_power()
         else:
             pass
+
+    def draw(self, amount, discard):
+    # mutates deck (current play deck of game)
+    # werkt nog niet goed met updaten observatory 
+        print "{0} drew {1} cards and will discard {2}.".format(self.name, amount, discard)
+        if discard == 0:
+            for i in xrange(amount):
+                drawn_card = deck[0]
+                self.cards_in_hand.append(drawn_card)
+                deck.remove(drawn_card)
+                print "(HIDDEN) You drew {0}. Added to hand".format(drawn_card)
+                print "Cards in hand: {0}".format(', '.join(self.cards_in_hand))
+        else:
+            # WARNING! Not functional if discard =/= 1 or 0 I think 
+            if 'Observatory' in self.buildings_built:
+                # draw 2+1 and put 2 on bottom of deck
+                print "Because of the Observatory, {0} may draw 3 cards and choose 1. The discarded cards go to the bottom of the deck.".format(self.name)
+                drawn_cards = []
+                for i in xrange(amount+1):
+                    drawn_cards.append(deck[i])
+                print "You drew {0}".format(', '.join(drawn_cards))
+
+                keep_card = raw_input("What card do you wish to keep: ")
+                while keep_card not in drawn_cards:
+                    keep_card = raw_input("What card do you wish to keep: ")
+
+                drawn_card = keep_card
+                drawn_card_index = drawn_cards.index(keep_card)
+                deck.remove(deck[drawn_card_index])
+                # silly .remove() returning none... list comprehension then
+                discarded_cards = [x for x in drawn_cards if x != keep_card]
+                deck.extend(discarded_cards)
+                print "(HIDDEN) added {0} to bottom of the deck".format(', '.join(discarded_cards))
+                self.cards_in_hand.append(drawn_card)
+                print "Cards in hand: {0}".format(', '.join(self.cards_in_hand))
+            else:
+                drawn_cards = []
+                for i in xrange(amount):
+                    drawn_cards.append(deck[i])
+                print "You drew {0}".format(', '.join(drawn_cards))
+                keep_card = raw_input("What card do you wish to keep: ")
+                while keep_card not in drawn_cards:
+                    keep_card = raw_input("What card do you wish to keep : ")
+
+                drawn_card = keep_card
+                drawn_card_index = drawn_card.index(keep_card)
+
+                deck.remove(deck[drawn_card_index])
+                self.cards_in_hand.append(drawn_card)
+                print "Cards in hand: {0}".format(', '.join(self.cards_in_hand))
 
     def show(self):
         print "Your name is {}".format(self.name)
@@ -184,6 +244,86 @@ class Player(object):
         else:
             print "You are not in posession of the king figure."
         print ""
+
+    def show_own_board(self):
+        print '{:^80}'.format('-'*33 + "Cards in hand:" + '-'*33)
+        print
+        self.show_cards(self.cards_in_hand)
+        print '{:^80}'.format('-'*32 + "Built buildings:" + '-'*32)
+        self.show_cards(self.buildings_built)
+        print "Your player name is {}".format(self.name)
+        print "You are playing as the {}".format(self.character)
+        print "You currently have {} coins".format(self.coins)
+
+        if self.has_used_power == 1:
+            print "You have used your power already."
+        else:
+            print "You have not used your power yet."
+        if self.has_king_figure == 1:
+            print "You are in posession of the king figure."
+        else:
+            print "You are not in posession of the king figure."
+        print ""
+
+    def show_board_to_public(self):
+        print '{:^80}'.format('-'*32 + "Built buildings:" + '-'*32)
+        self.show_cards(self.buildings_built)
+        print "Player name: {0}".format(self.name)
+        print "Character: {0}".format(self.character if self.character_visible else "Hidden")
+
+    def show_cards(self, cards):
+        global CARDS
+
+        amount_of_cards = len(cards)
+        max_line_length = 22
+        max_lines = 15
+        print_table = ["" for x in range(amount_of_cards)]
+
+        for card, i in zip(cards, range(amount_of_cards)):
+            print_table[i] = [""]
+            print_table[i].append("-"*max_line_length)
+            print_table[i].append('~ ' + CARDS[card].name + ' ~')
+            print_table[i].append("Cost: " + 'O ' * CARDS[card].cost + (CARDS[card].points - CARDS[card].cost) * '0 ' )
+            print_table[i].append("Color: " + CARDS[card].color)
+            print_table[i].append("")
+
+            split_description = (textwrap.fill(CARDS[card].description, max_line_length)).splitlines()
+
+            for line in split_description:
+                print_table[i].append(str(line))
+
+            while len(print_table[i]) < max_lines: 
+                print_table[i].append("")
+
+            print_table[i].append("-" * max_line_length)
+
+            del print_table[i][0]
+
+        # Print cards on multiple rows if there is more than 3
+        if amount_of_cards > 3:
+            temp_table = [print_table[i:i+3] for i in range(0, len(print_table), 3)]
+
+            for l in temp_table:
+                self.print_cards(l, max_lines, len(l))
+                print
+        else: 
+            self.print_cards(print_table, max_lines, amount_of_cards)
+
+    # A function to print a 2d list as a card.
+    def print_cards(self, cards_print, max_cols, max_rows):
+        for i in range(max_cols):
+            for j in range(max_rows):
+                val = cards_print[j][i]
+                if type(val) is str and val.startswith('~'):
+                    print '|{:^22}|'.format(val),
+                elif val.startswith('-'):
+                    print 'o{:<22}o'.format(val ),
+                else:
+                    print '|{:<22}|'.format(val ),
+            print
+
+
+
 
 ### GENERATE PLAYER OBJECTS ### 
 
@@ -202,6 +342,26 @@ player2 = players[1]
 player3 = players[2]
 player4 = players[3]
 
+players[3].character_visible = 1
+
+def genr_hand(amount):
+    # generates random hand of cards (list) of length amount
+    hand = []
+    for i in xrange(amount):
+        hand.append(random.choice(deck))
+    return hand
+
+players[0].cards_in_hand = genr_hand(5)
+players[1].cards_in_hand = genr_hand(1)
+players[2].cards_in_hand = genr_hand(10)
+players[3].cards_in_hand = genr_hand(2)
+
+players[0].buildings_built = ['Temple','Harbour']
+players[1].buildings_built = ['Library', 'Smithy']
+players[2].buildings_built = ['School of Magic']
+players[3].buildings_built = ['Keep', 'Graveyard', 'Tavern']
+
+
 def nextplayer(player_number): 
     global NUMBER_OF_PLAYERS 
     if player_number > NUMBER_OF_PLAYERS or player_number < 1:
@@ -212,6 +372,10 @@ def nextplayer(player_number):
     else: 
         return player_number + 1 
 
+def show_board_to_player(player):
+    for other_player in players:
+        if other_player is not player:
+            other_player.show_board_to_public()
 
 def remove_characters():
     """ Silently removes 1 character, then depending on amount of players removes
@@ -242,6 +406,8 @@ def remove_characters():
     print "(HIDDEN) Characters removed face down: {}".format(facedown_remove.encode("hex"))
     print "Characters revealved on table: {}".format(', '.join(faceup_remove))
 
+SLEEPY = 0
+
 print """
 ================================================================================
     ..|'''.| '||' |''||''|     |     '||''|.   '||''''|  '||'       .|'''.|  
@@ -257,18 +423,17 @@ print  "====== PHASE 0: REFRESH TURN ===== \n"
 # give king figure to oldest player if no one has king
 # set has_picked = 0 for all players 
 
-time.sleep(1)
 
 print "====== PHASE 1: REMOVE CHARACTERS ===== \n"
 
-time.sleep(1)
+if SLEEPY: time.sleep(1)
 
 character_deck = ['assassin', 'thief', 'architect', 'bishop', 'king', 'magician', 'merchant', 'warlord']
 print "Original character deck:", ", ".join(character_deck)
 remove_characters()
 print "Characters to pick from:", ", ".join(character_deck)
 
-time.sleep(1)
+if SLEEPY: time.sleep(1)
 
 
 print "\n===== PHASE 2: PICK CHARACTERS ===== \n"
@@ -288,14 +453,15 @@ for player in players:
             print "Character not in deck. Try again. "
             pickedclass = raw_input("Pick a character: ")
 
-time.sleep(1)
+if SLEEPY: time.sleep(1)
+
 print "\n==== PHASE 3: PLAYER TURNS ==== \n"
 
 for rank in range(1,9):
     for player in players:
         if player.rank == rank:
             print "=== PLAYER: {0} ({1}) ===\n".format(player.name, player.character)
-
+            player.character_visible = 1
             turn_end = False
             while not turn_end:
                 actions = {'show': 'show information'}
@@ -310,6 +476,8 @@ for rank in range(1,9):
                     actions['build'] = 'to build .'
                 if player.has_taken == 0 and player.has_built == 0:
                     actions.pop('build', None)
+                if len(player.cards_in_hand) > 0:
+                    actions['show hand'] = "Shows your hand"
 
                 for action in actions:
                    print "--",action, "-- ", actions[action]
@@ -332,5 +500,10 @@ for rank in range(1,9):
                     player.build()
                 elif action == "end":
                     turn_end = True
+#                elif action == "show":
+#                    player.show()
                 elif action == "show":
-                    player.show()
+                    show_board_to_player(player)
+                    #player.show_own_board()
+                elif action == "show hand":
+                    player.show_own_board()

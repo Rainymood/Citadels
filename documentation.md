@@ -105,6 +105,7 @@ game:
 4	Castle	4 yellow 
 3	Palace	5 yellow 
 1	Haunted City2 purple 
+
 2	Keep	3 purple 
 1	Laboratory	5 purple 
 1	Smithy	5 purple 
